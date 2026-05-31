@@ -1,6 +1,6 @@
 # Three-Band Graphic Audio Equalizer
 
-A complete analog electronic design for a three-band graphic audio equalizer system implemented using operational amplifiers and passive filter networks. This project demonstrates signal processing through frequency-selective filtering and summation techniques.
+A complete analog-to-digital audio signal processing system implementing a three-band graphic equalizer using operational amplifiers and MATLAB digital signal processing. This project bridges analog circuit design with real-time digital implementation using the ADALM1000 test and measurement device.
 
 **Project Contributors:** Bandaru Srimani Rishit (23f3000436), Harsha Vardhan (23f3000126), Sivaraman S
 
@@ -12,8 +12,11 @@ A complete analog electronic design for a three-band graphic audio equalizer sys
 2. [Implementation Details](#implementation-details)
 3. [System Architecture](#system-architecture)
 4. [Circuit Components](#circuit-components)
-5. [How to Use](#how-to-use)
-6. [Specifications](#specifications)
+5. [Software Implementation](#software-implementation)
+6. [ADALM1000 Setup Guide](#adalm1000-setup-guide)
+7. [How to Use](#how-to-use)
+8. [MATLAB Code Documentation](#matlab-code-documentation)
+9. [Specifications](#specifications)
 
 ---
 
@@ -91,7 +94,7 @@ This allows users to independently adjust the amplitude of each frequency band, 
 
 ## Implementation Details
 
-### Circuit Design Approach
+### Analog Circuit Design Approach
 
 The equalizer uses a **cascade of independent active bandpass filters** followed by a **summing amplifier** to combine the outputs. This modular approach provides:
 
@@ -189,39 +192,18 @@ V_out = -Rf × (V1/R1 + V2/R2 + V3/R3)
 - Rf (Op-Amp Feedback) = 10 kΩ
 - Op-Amp: AD8648 (Low-noise, rail-to-rail)
 
-This stage:
-- Combines the three band-separated signals
-- Provides final gain/attenuation control
-- Inverts the signal (compensating for inverting stages)
-- Buffers the output for impedance matching
+### Digital Signal Processing (DSP) Implementation
 
-### Power Supply Management
+The digital equivalent uses **Sallen-Key Butterworth bandpass filters** implemented via MATLAB's Signal Processing Toolbox. This provides:
 
-The circuit requires **dual ±2.5V power supply** (or ±5V for more headroom):
-
-**Power Supply Components:**
-- V1 = 5V voltage source
-- R4, R5 = 5 kΩ each (Voltage divider for Vcom)
-- Vcom = 2.5V (Mid-supply voltage for biasing)
-- Decoupling capacitors throughout (1 nF and 1 µF)
-
-The mid-supply voltage (Vcom = 2.5V) provides the reference point for single-supply operation, allowing the circuit to operate with purely AC signals centered around this voltage.
-
-### Input Buffering and Source Integration
-
-The system includes a **high-impedance input buffer** using the AD8648 op-amp:
-
-**Buffer Specifications:**
-- R12, R13 = 620 kΩ (Input impedance network)
-- C7 = 0.1 µF (Input coupling)
-- R14 = 50 Ω (Source impedance matching)
-- C8 = 1 µF (Output coupling)
-
-This buffer:
-- Presents high input impedance to the audio source
-- Isolates source impedance from the rest of the circuit
-- Provides gain matching for the three audio input channels
-- Ensures low-distortion signal transfer
+```matlab
+% Design 2nd-order Butterworth bandpass filter
+f1 = f0 - BW/2;
+f2 = f0 + BW/2;
+Wn = [f1 f2]/(Fs/2);  % Normalized frequencies
+[b, a] = butter(2, Wn, 'bandpass');  % 2nd-order filter design
+y_band = filter(b, a, x) * G;  % Apply filter with gain G
+```
 
 ---
 
@@ -231,78 +213,66 @@ This buffer:
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
-│                  THREE-BAND GRAPHIC EQUALIZER SYSTEM                │
+│          THREE-BAND GRAPHIC EQUALIZER SYSTEM ARCHITECTURE           │
 └─────────────────────────────────────────────────────────────────────┘
 
-    Audio Input (Simulated: 3 different frequency sources)
-           │
-           ├─ Vin_audio3 (1300 Hz) ──────┐
-           │                              │
-           ├─ Vin_audio1 (285 Hz) ───────┤
-           │                              ├──► Summing Network
-           ├─ Vin_audio2 (60 Hz) ────────┤
-           │                              │
-           └─ Vin_audio (Mixed signal) ──┘
-                        │
-                        ▼
-                  ┌──────────────┐
-                  │   Preamp     │
-                  │  (AD8648)    │
-                  └──────────────┘
-                        │
-           ┌────────────┼────────────┐
-           │            │            │
-           ▼            ▼            ▼
-      ┌────────┐  ┌────────┐  ┌────────┐
-      │ Band 1 │  │ Band 2 │  │ Band 3 │
-      │  60Hz  │  │ 280Hz  │  │1200Hz  │
-      │Bandpass│  │Bandpass│  │Bandpass│
-      │ Filter │  │ Filter │  │ Filter │
-      │  (U1)  │  │  (U2)  │  │  (U3)  │
-      └────────┘  └────────┘  └────────┘
-           │            │            │
-           │  Gain 1    │  Gain 2    │  Gain 3
-           │ (Variable) │ (Variable) │ (Variable)
-           │            │            │
-           └────────────┼────────────┘
-                        │
-                        ▼
-                  ┌──────────────┐
-                  │   Summing    │
-                  │  Amplifier   │
-                  │   (AD8648)   │
-                  └──────────────┘
-                        │
-                        ▼
-                  ┌──────────────┐
-                  │   Output     │
-                  │  Coupling &  │
-                  │ Impedance    │
-                  │  Matching    │
-                  └──────────────┘
-                        │
-                        ▼
-                    Audio Output
-                      Vout
+                    ANALOG CIRCUIT LAYER
+    ┌──────────────────────────────────────────────────────────┐
+    │  Hardware: LTSpice Simulation (project_demo.asc)         │
+    │                                                          │
+    │     Audio Input ──► Preamp ──► 3 Bandpass Filters ──►  │
+    │                                (60Hz, 280Hz, 1200Hz)     │
+    │                                      ▼                   │
+    │                              Summing Amplifier ──►       │
+    │                                      ▼                   │
+    │                              Output Buffer ──►           │
+    │                              Audio Output                │
+    └──────────────────────────────────────────────────────────┘
+                                │
+                                │ (Interface)
+                                ▼
+                 DIGITAL PROCESSING LAYER
+    ┌──────────────────────────────────────────────────────────┐
+    │ ADALM1000 + MATLAB Real-Time Processing                  │
+    │                                                          │
+    │  Audio File ──► Digital Filter Bank ──►                 │
+    │  (MP3/WAV)       (Butterworth BPF)                       │
+    │                          │                              │
+    │                   ┌──────┼──────┐                        │
+    │                   ▼      ▼      ▼                        │
+    │                 Band1  Band2  Band3                      │
+    │                          │                              │
+    │                          ▼                              │
+    │                    Gain Adjustment                       │
+    │                          │                              │
+    │                          ▼                              │
+    │                  Signal Summation                        │
+    │                          │                              │
+    │      ┌────────────────────┼────────────────────┐         │
+    │      │                    │                    │         │
+    │      ▼                    ▼                    ▼         │
+    │   ADALM1000          PC Speaker           Plots         │
+    │   Output (ChA)      Real-time Audio    Visualization    │
+    │                                                          │
+    │      Real-time Oscilloscope (project.m)                │
+    │      - Dual channel monitoring                          │
+    │      - Adjustable timebase & volt/div                   │
+    │      - DSO or Bode plot modes                          │
+    └──────────────────────────────────────────────────────────┘
 ```
 
 ### Information Flow
 
-1. **Input Stage:** Three simulated audio sources (60 Hz, 285 Hz, 1300 Hz) are combined to create a complex audio signal
-2. **Preprocessing:** Input buffer isolates the audio source and presents it to the three parallel filter stages
-3. **Parallel Processing:** Each bandpass filter independently extracts its corresponding frequency range
-4. **Gain Control:** Variable gain resistors allow independent amplitude adjustment of each band
-5. **Signal Combination:** The summing amplifier combines all three bands back into a single output signal
-6. **Output:** The final equalized audio signal is coupled and buffered for driving external loads
-
-### Design Philosophy
-
-The three-stage parallel architecture provides:
-
-- **Modularity:** Each band is independent and can be tuned separately
-- **Scalability:** Additional bands can be added by expanding the summing stage
-- **Control:** Independent gain adjustment provides intuitive user control
-- **Performance:** Minimal interaction between frequency bands
+1. **Input Stage:** Audio signal (MP3/WAV) loaded into MATLAB
+2. **Preprocessing:** Signal resampled to ADALM1000 rate (~48-100 kHz)
+3. **Parallel Processing:** Three independent Butterworth bandpass filters
+4. **Gain Control:** Independent amplitude adjustment per band
+5. **Signal Combination:** Outputs summed for final equalized signal
+6. **Output Routing:** 
+   - ADALM1000 Channel A: Equalized signal to analog circuit
+   - ADALM1000 Channel B: Feedback/measurement from analog hardware
+   - PC Speaker: Real-time audio playback
+7. **Visualization:** Real-time oscilloscope or Bode plots
 
 ---
 
@@ -342,56 +312,781 @@ The three-stage parallel architecture provides:
 
 ---
 
+## Software Implementation
+
+### MATLAB Scripts Overview
+
+The project includes five comprehensive MATLAB scripts that progressively build from basic device testing to complete real-time audio processing:
+
+#### 1. **device_test.m** - ADALM1000 Device Detection & Diagnostics
+**Purpose:** Verify ADALM1000 hardware connection and driver installation
+
+```matlab
+% Check DAQ vendor availability
+vendors = daqvendorlist;
+
+% Detect ADI-specific devices
+adi_devices = daqlist('adi');
+
+% Create DAQ session
+dq = daq('adi');
+
+% Query device information
+device_id = adi_devices.DeviceID{1};
+device_info = daqhwinfo(dq, device_id);
+```
+
+**Usage:**
+```bash
+>> device_test
+```
+
+**Expected Output:**
+```
+=== DAQ Vendor Check ===
+adi
+
+=== Checking ADI Devices ===
+Found ADI devices:
+  DeviceID  DeviceModel
+  ________  ____________
+  'SMU1'    'ADALM1000'
+
+=== Testing DAQ Session Creation ===
+DAQ session created successfully.
+```
+
+---
+
+#### 2. **voltage_reader_code.m** - Continuous Voltage Logging
+**Purpose:** Capture and log voltage measurements from both ADALM1000 channels over time
+
+**Key Features:**
+- Dual-channel synchronous acquisition
+- Configurable sample rate (100 kHz)
+- Interval-based averaging
+- CSV export for data analysis
+- Real-time plotting
+
+```matlab
+% Parameters
+sampleRate = 100000;   % Hz
+interval = 0.5;        % Seconds per block
+totalTime = 10;        % Total acquisition time
+
+% Create DAQ session
+dev = daq.createSession('adi');
+addAnalogInputChannel(dev, 'SMU1', 'A', 'Voltage');
+addAnalogInputChannel(dev, 'SMU1', 'B', 'Voltage');
+
+% Acquire data
+[data, timestamps] = dev.startForeground();
+```
+
+**Usage:**
+```bash
+>> voltage_reader_code
+```
+
+**Output Files:**
+- `voltage_avg_30mins.csv` - Time-stamped voltage data
+
+---
+
+#### 3. **device_test.m** - DSO and Bode Plot Measurement
+**Purpose:** Real-time oscilloscope and frequency response analysis
+
+**Two Modes:**
+
+**Mode A: Real-Time Digital Oscilloscope (DSO)**
+- Dual-channel display (Yellow = Ch A output, Green = Ch B input)
+- Adjustable timebase (0.5x - 10x scaling)
+- Adjustable volt/div (0.5V - 5V per division)
+- Live measurement statistics (Peak-to-peak, frequency estimation)
+- Run/Stop control button
+- ~33 FPS refresh rate for smooth visualization
+
+```matlab
+mode = "DSO";
+% GUI features:
+% - Interactive waveform display
+% - Real-time measurements
+% - Timebase and volt/div sliders
+% - Run/Stop button
+```
+
+**Mode B: Bode Plot Analysis**
+- Logarithmic frequency sweep (10 Hz - 10 kHz)
+- Magnitude response (dB)
+- Phase response (degrees)
+- Cross-correlation phase estimation
+
+```matlab
+mode = "BODE";
+% Generates frequency response plots
+% 30 frequency points across decade range
+```
+
+**Usage:**
+```bash
+>> project  % Runs with default mode "BODE"
+```
+
+---
+
+#### 4. **graphic_equalizer_sim.m** - Digital Audio Equalization
+**Purpose:** Load MP3/WAV audio and apply digital three-band equalization
+
+**Process Flow:**
+1. Load audio file (MP3 format)
+2. Normalize to [-1, 1] range
+3. Design Butterworth bandpass filters for each band
+4. Apply filters with independent gains
+5. Sum equalized outputs
+6. Play audio through PC speakers
+7. Generate visualization plots
+
+**Key Functions:**
+```matlab
+% Load audio
+[x, Fs] = audioread(mp3path);
+
+% Design filters for each band
+f0 = 60; BW = 80; G = 4;  % Band 1
+f1 = f0 - BW/2;
+f2 = f0 + BW/2;
+Wn = [f1 f2]/(Fs/2);
+[b, a] = butter(2, Wn, 'bandpass');
+
+% Apply filter with gain
+y_band = filter(b, a, x) * G;
+
+% Play audio
+sound(y_eq, Fs);
+```
+
+**Visualization Output:**
+- Individual band frequency responses
+- Time-domain waveforms per band
+- Frequency-domain spectra (original vs equalized)
+- Combined frequency response
+
+**Usage:**
+```bash
+>> graphic_equalizer_sim
+```
+
+**Configuration:**
+Edit the MP3 file path:
+```matlab
+mp3path = 'C:\Users\YOUR_NAME\path\to\audio.mp3';
+```
+
+---
+
+#### 5. **myfrequencycomp.m** - Real-Time Hybrid Oscilloscope + Audio
+**Purpose:** Simultaneous real-time oscilloscope monitoring with audio playback
+
+**Advanced Features:**
+- Dual IIR filtering for signal conditioning
+- High-pass filter (DC removal, default 400 Hz)
+- Low-pass filter (noise suppression, default 12 kHz)
+- Real-time soft clipping to prevent distortion
+- Synchronized audio playback via PC speakers
+- Block-by-block processing (~43 ms blocks at 48 kHz)
+- Rolling buffer waveform display
+- MP3 input to analog output chain
+
+**Signal Flow:**
+```
+MP3 Input ──► Resample to ADALM1000 rate (48 kHz)
+    ▼
+Output to ADALM1000 Ch A ──► Analog Circuit
+    ▼
+Read Back from ADALM1000 Ch B
+    ▼
+High-Pass Filter (DC removal) ──► Low-Pass Filter (noise)
+    ▼
+Soft Clipping ──► PC Speaker Playback
+    ▼
+Real-Time Oscilloscope Display
+```
+
+**Key Parameters:**
+```matlab
+Fs_audio = 48000;          % PC speaker sample rate
+Fs_m1k   = 48000;          % ADALM1000 rate
+blockSize = 2048;          % ~43 ms per block
+hpCutoff = 400;            % High-pass DC removal
+lpCutoff = 12000;          % Low-pass noise suppression
+```
+
+**Usage:**
+```bash
+>> myfrequencycomp
+```
+
+**Output:**
+- Real-time oscilloscope display
+- CSV data files for post-analysis
+- MP3 audio played through speakers
+
+---
+
+## ADALM1000 Setup Guide
+
+### What is ADALM1000?
+
+The **ADALM1000** (Analog Discovery Lite Module 1000) is a portable electronic test and measurement device developed by Analog Devices. It provides:
+
+- **2 Analog Output Channels:** Generate test signals (±5V range)
+- **2 Analog Input Channels:** Measure signals with 12-bit resolution
+- **High Sample Rate:** Up to 100 kHz per channel
+- **USB Interface:** Simple plug-and-play connectivity
+- **Low Cost:** Affordable for educational and prototyping use
+
+**Key Specs:**
+```
+Resolution: 12-bit
+Sample Rate: 0-100 kHz per channel
+Voltage Range: 0-5V (typical), ±5V with biasing
+USB Power: Single USB connection to PC
+Impedance: ~1 MΩ input, ~100 Ω output
+```
+
+---
+
+### Step-by-Step ADALM1000 Setup
+
+#### **Step 1: Hardware Connection**
+
+1. **Locate the ADALM1000 device**
+   - Small USB device approximately 3" × 2"
+   - Includes SMU (Source Measurement Unit) ports
+
+2. **Connect to PC**
+   - Use a USB 2.0 or higher cable
+   - Connect to a powered USB port (powered hub recommended for stability)
+   - LED indicators should light up
+
+3. **Channel Identification**
+   - **Channel A:** Primary output channel (orange/yellow terminals)
+   - **Channel B:** Secondary input channel (blue/green terminals)
+   - **GND:** Ground reference (black terminal)
+
+```
+Physical Connection:
+┌─────────────────────┐
+│   ADALM1000         │
+├─────────────────────┤
+│ CH A Output │ ●●●   │──► To analog circuit input
+│ CH B Input  │ ●●●   │◄── From analog circuit output
+│ GND         │ ●     │──► Ground reference
+└─────────────────────┘
+         │
+    USB Cable
+         │
+         ▼
+   Computer USB Port
+```
+
+---
+
+#### **Step 2: Driver Installation**
+
+**Windows 10/11:**
+
+1. **Download Required Software**
+   - Visit: https://github.com/analogdevicesinc/libiio
+   - Download the latest Windows installer (`.exe`)
+   - Alternative: Download from Analog Devices official site
+
+2. **Install Device Drivers**
+   ```bash
+   # Option A: Automatic (Recommended)
+   - Run: libiio-installer.exe
+   - Follow on-screen prompts
+   - Accept all recommended components
+   - Restart computer when prompted
+   
+   # Option B: Manual USB Device Setup
+   - Windows: Device Manager → Universal Serial Bus
+   - Right-click ADALM1000 → Update driver
+   - Select "Browse my computer for driver software"
+   - Navigate to driver folder and install
+   ```
+
+3. **Verify Installation**
+   - Device Manager should show: **Analog Devices ADALM1000**
+   - No yellow warning triangles should appear
+
+**Linux:**
+
+```bash
+# Install libiio
+sudo apt-get install libiio-dev libiio-utils
+
+# Verify device detection
+iio_info
+```
+
+**macOS:**
+
+```bash
+# Using Homebrew
+brew install libiio
+
+# Verify
+iio_info
+```
+
+---
+
+#### **Step 3: MATLAB Configuration**
+
+**A. Install Required MATLAB Toolboxes**
+
+1. **Data Acquisition Toolbox**
+   - Open MATLAB
+   - Click: Home → Add-Ons → Get Add-Ons
+   - Search: "Data Acquisition Toolbox"
+   - Install latest version
+
+2. **ADI Hardware Support Package**
+   - Home → Add-Ons → Get Add-Ons
+   - Search: "ADI Hardware Support"
+   - Install the ADALM package
+
+3. **Signal Processing Toolbox** (for filters)
+   - Required for filter design and DSP
+   - Home → Add-Ons → Get Add-Ons
+
+4. **Audio Toolbox** (optional, for audio playback)
+   - For real-time audio processing
+
+**B. Verify MATLAB Recognition**
+
+```matlab
+% In MATLAB Command Window:
+
+% Check installed vendors
+vendors = daqvendorlist;
+disp(vendors);
+
+% Expected output: includes 'adi'
+
+% List connected ADI devices
+devices = daqlist('adi');
+disp(devices);
+
+% Expected output:
+%    DeviceID      DeviceModel
+%    _________     ____________
+%    'SMU1'        'ADALM1000'
+```
+
+**C. Create Test DAQ Session**
+
+```matlab
+% Create DAQ session
+dq = daq("adi");
+
+% Add output channel (Channel A)
+addoutput(dq, "SMU1", "A", "Voltage");
+
+% Add input channel (Channel B)
+addinput(dq, "SMU1", "B", "Voltage");
+
+% Set sample rate
+dq.Rate = 100000;  % 100 kHz
+
+disp('ADALM1000 Ready!');
+```
+
+---
+
+#### **Step 4: Basic I/O Verification**
+
+**A. Output Test - Generate DC Voltage**
+
+```matlab
+% Test DC output on Channel A
+dq = daq("adi");
+addoutput(dq, "SMU1", "A", "Voltage");
+
+% Set 2.5V output
+outputVoltage = 2.5;
+write(dq, outputVoltage);
+
+% Measure with multimeter on Channel A terminals
+fprintf('Outputting %.2f V\n', outputVoltage);
+pause(5);
+```
+
+**B. Input Test - Measure Applied Voltage**
+
+```matlab
+% Test voltage measurement on Channel B
+dq = daq("adi");
+addinput(dq, "SMU1", "B", "Voltage");
+
+% Take 10 samples at 1 kHz
+dq.Rate = 1000;
+dq.DurationInSeconds = 0.01;
+data = read(dq);
+
+% Display measured voltage
+measuredVoltage = mean(data);
+fprintf('Measured Voltage on Ch B: %.3f V\n', measuredVoltage);
+```
+
+**C. Simultaneous Read/Write Test**
+
+```matlab
+% Generate sine wave and measure
+dq = daq("adi");
+addoutput(dq, "SMU1", "A", "Voltage");
+addinput(dq, "SMU1", "B", "Voltage");
+
+Fs = 10000;  % 10 kHz
+dq.Rate = Fs;
+duration = 1;  % 1 second
+t = (0:1/Fs:duration-1/Fs)';
+
+% Create test signal: 1 kHz sine wave, offset to 2.5V DC
+sig = 2.5 + 1.5*sin(2*pi*1000*t);
+
+% Acquire data while outputting
+[dataIn, ~] = readwrite(dq, sig);
+
+% Plot results
+figure;
+plot(t, sig, 'r', 'DisplayName', 'Output (Ch A)');
+hold on;
+plot(t, dataIn, 'b', 'DisplayName', 'Measured (Ch B)');
+legend; grid on;
+xlabel('Time (s)'); ylabel('Voltage (V)');
+title('ADALM1000 Output vs Input');
+```
+
+---
+
+#### **Step 5: Troubleshooting Connection Issues**
+
+**Problem: Device not recognized in MATLAB**
+
+**Solution:**
+```matlab
+% Step 1: Force vendor reset
+clear all; clear classes;
+
+% Step 2: Re-list devices
+vendors = daqvendorlist;
+adi_devices = daqlist('adi');
+
+% Step 3: If still empty, reinstall driver:
+% - Windows: Device Manager → Uninstall device driver
+% - Restart computer
+% - Reinstall ADALM driver from Analog Devices
+```
+
+**Problem: Timeout errors during data acquisition**
+
+**Solution:**
+```matlab
+% Increase timeout threshold
+dq = daq("adi");
+dq.ScansAvailableOutputFcn = [];  % Disable callbacks
+
+% Use smaller block sizes
+blockSize = 512;  % Instead of 2048
+
+% Or increase DAQ timeout in older versions:
+% setproperty(dq, 'Timeout', 5);  % 5 second timeout
+```
+
+**Problem: Noise or jitter in measurements**
+
+**Solution:**
+```matlab
+% Use averaging filters
+dq = daq("adi");
+addinput(dq, "SMU1", "B", "Voltage");
+
+% Acquire multiple reads and average
+numReads = 10;
+measurements = zeros(1000, numReads);
+for i = 1:numReads
+    data = read(dq);
+    measurements(:,i) = data;
+end
+
+% Moving average
+smoothed = mean(measurements, 2);
+```
+
+---
+
+### Running the MATLAB Scripts with ADALM1000
+
+#### **For graphic_equalizer_sim.m (Pure Digital DSP)**
+```matlab
+% No ADALM1000 required - works with audio files only
+% Simulates the analog circuit behavior digitally
+
+>> graphic_equalizer_sim
+
+% Adjust audio file path in script:
+mp3path = 'C:\Users\YourUsername\Music\song.mp3';
+```
+
+#### **For project.m (Real-Time Oscilloscope)**
+```matlab
+% Requires ADALM1000 connected
+
+% Start DSO mode (real-time oscilloscope)
+>> project
+
+% Controls:
+% - Run/Stop button: Pause acquisition
+% - Timebase slider: Adjust time scale
+% - Volt/div slider: Adjust voltage scale
+% - Adjustable refresh rate: ~33 FPS
+
+% For Bode plot mode, edit:
+% mode = "BODE";  % Change from "DSO"
+```
+
+#### **For myfrequencycomp.m (Hybrid Audio + Oscilloscope)**
+```matlab
+% Requires ADALM1000 + Audio Toolbox
+
+% Start real-time audio processing
+>> myfrequencycomp
+
+% Adjust audio file:
+mp3path = 'C:\Users\YourUsername\Music\song.mp3';
+
+% Monitor real-time oscilloscope display
+% Audio plays through PC speakers simultaneously
+
+% Output: voltage_measurements.csv for analysis
+```
+
+#### **For voltage_reader_code.m (Data Logging)**
+```matlab
+% Requires ADALM1000 connected
+
+% Start 10-second voltage logging
+>> voltage_reader_code
+
+% Outputs: voltage_avg_30mins.csv
+% Contains timestamped Ch A and Ch B voltages
+```
+
+---
+
+## System Architecture (Detailed)
+
+### Complete System Integration
+
+```
+┌────────────────────────────────────────────────────────────────────┐
+│                    COMPLETE SYSTEM ARCHITECTURE                    │
+└────────────────────────────────────────────────────────────────────┘
+
+DIGITAL DOMAIN (MATLAB + ADALM1000)
+┌──────────────────────────────────────────────────────────┐
+│  Audio Source                                            │
+│  ├─ MP3/WAV file                                         │
+│  └─ Simulated signals (sine combinations)                │
+│          ▼                                               │
+│  MATLAB Audio Processing                                │
+│  ├─ Load & normalize audio                              │
+│  ├─ Resample to ADALM1000 rate (48-100 kHz)            │
+│  └─ Scale to output range (0.1V - 4.9V)                │
+│          ▼                                               │
+│  ADALM1000 Output (Channel A)                           │
+│  └─ 12-bit DAC → Analog voltage signal                  │
+└──────────────────────────────────────────────────────────┘
+                      │ USB
+                      ▼
+ANALOG DOMAIN (Circuit Hardware)
+┌──────────────────────────────────────────────────────────┐
+│  Input Buffer (U4: AD8648)                               │
+│  ├─ Input impedance: ~620 kΩ                            │
+│  ├─ Source impedance matching                           │
+│  └─ Preamp gain stage                                   │
+│          ▼                                               │
+│  Three-Band Filter Bank                                 │
+│  ├─ Band 1 (60 Hz): U1 + RC components                  │
+│  ├─ Band 2 (280 Hz): U2 + RC components                 │
+│  └─ Band 3 (1200 Hz): U3 + RC components                │
+│          ▼      ▼      ▼                                 │
+│     Independent gain control (variable resistors)       │
+│          ▼      ▼      ▼                                 │
+│  Summing Amplifier (U5: AD8648)                         │
+│  ├─ Combine three filtered signals                      │
+│  ├─ Apply final gain adjustment                         │
+│  └─ Output buffering                                    │
+│          ▼                                               │
+│  Output Stage (U6: AD8648)                              │
+│  ├─ Low impedance buffering                             │
+│  ├─ Filter coupling capacitor                           │
+│  └─ Protection resistor                                 │
+│          ▼                                               │
+│  Equalized Audio Output                                 │
+│  └─ To speakers or external equipment                   │
+└──────────────────────────────────────────────────────────┘
+                      │ Feedback
+                      ▼
+ADALM1000 Input (Channel B)
+└─ 12-bit ADC → Measures filtered output
+                      │ USB
+                      ▼
+DIGITAL FEEDBACK LOOP (MATLAB)
+├─ Real-time oscilloscope display
+├─ Frequency response analysis
+├─ Data logging & CSV export
+└─ Performance metrics calculation
+```
+
+---
+
 ## How to Use
 
-### Simulation
+### Complete Workflow Example
 
-1. **Open the Circuit File:**
-   - Load `project_demo.asc` in LTSpice or compatible SPICE simulator
-   - The file contains the complete three-band equalizer schematic
+#### **Stage 1: Verify Hardware Setup**
 
-2. **Run Transient Analysis:**
-   - The circuit is configured for 30 ms transient simulation (`.tran 30m`)
-   - This captures 1-2 complete cycles of the low-frequency components
-
-3. **Observe Outputs:**
-   - **Vin_audio1, Vin_audio2, Vin_audio3:** Individual frequency sources (285 Hz, 60 Hz, 1300 Hz)
-   - **Vin_audio:** Combined input signal
-   - **Vout:** Equalized output signal after all processing
-
-4. **Adjust Parameters:**
-   - Edit the `.param` line to change component values:
-     ```
-     .param R1a=20k R2a=40k R3a=160k Ca=100n 
-            R1b=4k R2b=9k R3b=30k Cb=0.1u 
-            R1c=1k R2c=2k R3c=3k
-     ```
-   - Changes affect center frequencies and gain of each band
-
-### Frequency Band Adjustment
-
-To shift a bandpass center frequency:
-
-**For Band 1 (60 Hz):**
-```
-New_f₀ = 1 / (2π × √(R2a × R3a) × Ca)
-
-To increase frequency: Decrease R3a or Ca
-To decrease frequency: Increase R3a or Ca
+```bash
+# Run diagnostic script
+>> device_test
 ```
 
-**For Band 2 (280 Hz) and Band 3 (1200 Hz):**
-Apply the same formula with respective component values.
+Expected output confirms ADALM1000 detection.
 
-### Gain Adjustment
+---
 
-To change the amplification of each band:
+#### **Stage 2: Test Basic Connectivity**
 
+```bash
+# Run voltage logging for 10 seconds
+>> voltage_reader_code
 ```
-Gain = -R2 / R1
 
-Increase gain: Increase R2 or decrease R1
-Decrease gain: Decrease R2 or increase R1
+Verifies that both channels can acquire data.
+
+---
+
+#### **Stage 3: Simulate Equalization (Digital Only)**
+
+```bash
+# Run digital equalizer without hardware
+>> graphic_equalizer_sim
+```
+
+This demonstrates:
+- Butterworth filter design
+- Band separation effectiveness
+- Frequency response plots
+- Audio playback through PC speakers
+
+---
+
+#### **Stage 4: Real-Time Hardware Monitoring**
+
+```bash
+# Option A: DSO Mode (Real-time oscilloscope)
+% Edit project.m: mode = "DSO";
+>> project
+
+% Option B: Bode Mode (Frequency response)
+% Edit project.m: mode = "BODE";
+>> project
+```
+
+---
+
+#### **Stage 5: Full Integration (Hybrid Operation)**
+
+```bash
+# Run complete real-time system
+>> myfrequencycomp
+```
+
+This simultaneously:
+- Outputs equalized audio to ADALM1000 Channel A
+- Measures feedback on Channel B
+- Displays real-time oscilloscope
+- Plays audio through PC speakers
+- Logs data to CSV
+
+---
+
+### Practical Implementation Steps
+
+**For Testing the Analog Circuit with ADALM1000:**
+
+1. Build the three-band equalizer circuit on breadboard
+2. Connect ADALM1000 Channel A output to circuit input
+3. Connect ADALM1000 Channel B input to circuit output
+4. Run `myfrequencycomp.m`
+5. Monitor waveforms in real-time
+6. Observe frequency response in oscilloscope display
+7. Analyze data in generated CSV files
+
+---
+
+## MATLAB Code Documentation
+
+### Function Reference
+
+#### **graphic_equalizer_sim.m Functions**
+
+```matlab
+% Design Butterworth bandpass filter
+[b, a] = butter(2, [f1 f2]/(Fs/2), 'bandpass');
+
+% Frequency response analysis
+[h, w] = freqz(b, a, 2048, Fs);
+plot(w, 20*log10(abs(h)));
+
+% FFT analysis
+X = abs(fft(x));
+plot(f(1:N/2), X(1:N/2));
+
+% Audio playback
+sound(audio, Fs);
+```
+
+#### **project.m Functions**
+
+```matlab
+% Build multi-sine test signal
+sig = buildSignal(Fs, f_sines, amp, offset);
+
+% Frequency estimation via zero crossing
+f = estimateFreq(sig, Fs);
+
+% Bode plot measurement
+[gain, phase] = measureBode(freqs, Fs_m1k, blockSize);
+```
+
+#### **myfrequencycomp.m Functions**
+
+```matlab
+% High-pass filter design (DC removal)
+[b_hp, a_hp] = butter(2, hpCutoff/(Fs/2), 'high');
+
+% Low-pass filter design (noise suppression)
+[b_lp, a_lp] = butter(4, lpCutoff/(Fs/2), 'low');
+
+% Stateful filter with initial conditions
+[y, zi] = filter(b, a, x, zi);
+
+% Simultaneous read/write
+[data_in, ~] = readwrite(dq, data_out);
 ```
 
 ---
@@ -418,83 +1113,95 @@ Decrease gain: Decrease R2 or increase R1
 | Band 3 | 2 V/V | 4 W/W | +6.02 dB |
 | Summing Stage | Variable | Variable | Variable |
 
-### Power Consumption
+### ADALM1000 Specifications
 
-| Component | Current Draw | Power |
-|-----------|-------------|-------|
-| Each Op-Amp (±2.5V) | ~3-5 mA | ~15-25 mW |
-| Total System | ~20-30 mA | ~100-150 mW |
+| Parameter | Value |
+|-----------|-------|
+| Resolution | 12-bit |
+| Sample Rate | 0-100 kHz |
+| Voltage Range | 0-5V (typical) |
+| Channels | 2 simultaneous input/output |
+| USB Interface | USB 2.0/3.0 |
+| Power Consumption | ~500 mW |
+| Temperature Range | 0-70°C |
 
-### Input/Output Impedance
+### MATLAB Requirements
 
-| Parameter | Value | Notes |
-|-----------|-------|-------|
-| Input Impedance | ~620 kΩ | Determined by R12, R13 |
-| Output Impedance | ~10 Ω | Determined by summing amp configuration |
-| Source Impedance (Design) | 50 Ω | Impedance matching resistor R14 |
+| Component | Minimum Version |
+|-----------|-----------------|
+| MATLAB | R2020b or newer |
+| Data Acquisition Toolbox | R2021a+ |
+| Signal Processing Toolbox | R2020b+ |
+| Audio Toolbox | R2021b+ (optional) |
 
-### Noise Performance
+### Computer Requirements
 
-- **Op-Amp Type:** AD8648 (Low-noise dual amplifier)
-- **Input-referred Noise:** ~7 nV/√Hz typical
-- **Total Noise Floor:** -90 dB relative to 1V full-scale (estimated)
-
-### Simulation Parameters
-
-```
-.param R1a=20k R2a=40k R3a=160k Ca=100n      ; Band 1 components
-       R1b=4k R2b=9k R3b=30k Cb=0.1u         ; Band 2 components
-       R1c=1k R2c=2k R3c=3k                  ; Band 3 components
-
-.tran 30m                                     ; 30ms transient simulation
-```
-
-### Test Signals
-
-The simulation uses three pure sinusoidal sources to demonstrate band separation:
-
-| Source | Frequency | Amplitude | Band Response |
-|--------|-----------|-----------|----------------|
-| V2 (Vin_audio3) | 1300 Hz | 1V peak | Band 3 (High) |
-| V3 (Vin_audio1) | 285 Hz | 1V peak | Band 2 (Mid) |
-| V4 (Vin_audio2) | 60 Hz | 1V peak | Band 1 (Low) |
-
-Each test signal is centered on DC offset of 2.5V (Vcom reference) to allow operation in a single-supply environment.
+- **OS:** Windows 10/11, Linux, macOS
+- **RAM:** 4 GB minimum (8 GB recommended)
+- **CPU:** Multi-core processor (Intel i5 or equivalent)
+- **USB:** USB 2.0 or higher port with 500 mA available current
+- **Audio:** Speakers or headphones for playback
 
 ---
 
 ## Files in This Repository
 
-- **README.md** - This comprehensive documentation file
-- **project_demo.asc** - LTSpice schematic file containing the complete circuit design
-- **Three-Band Graphic Audio Equalizer Project Report.pdf** - Detailed project report with additional analysis and measurements
+| File | Type | Purpose |
+|------|------|---------|
+| **README.md** | Documentation | Comprehensive system documentation |
+| **project_demo.asc** | LTSpice Schematic | Analog circuit design |
+| **graphic_equalizer_sim.m** | MATLAB Script | Digital equalizer simulation |
+| **project.m** | MATLAB Script | Real-time DSO & Bode plot |
+| **myfrequencycomp.m** | MATLAB Script | Hybrid audio + oscilloscope |
+| **device_test.m** | MATLAB Script | Hardware diagnostics |
+| **voltage_reader_code.m** | MATLAB Script | Data logging |
+| **Three-Band Graphic...pdf** | Report | Detailed project report |
 
 ---
 
-## Additional Notes
+## Additional Resources
 
-### Design Considerations
+### Useful References
 
-1. **Single-Supply Operation:** The circuit uses a single 5V power supply with mid-supply biasing to operate with AC signals
-2. **Op-Amp Selection:** AD8648 chosen for low noise and rail-to-rail performance
-3. **Component Tolerances:** Standard 5-10% resistor and capacitor tolerances are acceptable; precise tuning can be achieved through scaling
-4. **Frequency Range:** The three bands cover typical audio EQ regions; additional bands can be added by replicating the bandpass filter stage
+1. **ADALM1000 Official Documentation:**
+   - https://wiki.analog.com/resources/eval/user-guides/adalm1000
 
-### Future Enhancements
+2. **Data Acquisition Toolbox:**
+   - https://www.mathworks.com/help/daq/
 
-1. Add variable resistors (potentiometers) for real-time gain control
-2. Implement a switchable low-pass filter to prevent aliasing in the output
-3. Add a parametric EQ stage for more precise frequency control
-4. Design PCB layout with proper ground planes for low-noise operation
-5. Add input/output protection circuits for robust real-world implementation
+3. **Signal Processing Design:**
+   - Filter design tools: `fdatool` in MATLAB
+   - Bode plot analysis: `bodeplot` function
 
-### References
+4. **Audio Processing:**
+   - Audio Toolbox documentation
+   - Digital Signal Processing fundamentals
 
-- SPICE Simulation: Circuit simulated using LTSpice (Linear Technology)
-- Op-Amp Theory: Standard operational amplifier design techniques (active filters)
-- Audio Signal Processing: Nyquist-Shannon sampling and frequency domain analysis
+### Design Enhancements
+
+1. **Variable Frequency Bands:**
+   - Modify center frequencies via resistor/capacitor values
+   - Create parametric equalizer
+
+2. **Additional Bands:**
+   - Extend to 5-band or 10-band equalizer
+   - Replicate filter stages in circuit
+
+3. **Graphic Interface:**
+   - Create MATLAB GUI sliders for real-time gain control
+   - Implement visual frequency response display
+
+4. **Advanced Filtering:**
+   - Implement higher-order Butterworth filters (4th, 6th order)
+   - Add parametric EQ capabilities
+
+5. **Hardware Implementation:**
+   - Design PCB layout for compact implementation
+   - Add potentiometers for analog gain control
+   - Implement microcontroller-based digital control
 
 ---
 
 **Last Updated:** May 31, 2026  
-**Status:** Complete and Documented
+**Status:** Complete - With MATLAB Implementation & ADALM1000 Setup Guide  
+**Languages:** MATLAB (DSP), AGS Script (Simulation), VHDL (future)
